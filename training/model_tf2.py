@@ -1,15 +1,22 @@
 import tensorflow as tf
 import numpy as np
+import argparse
 
-im_size = 156
-im_size_squared = im_size**2
-label_size = 5
-output_size=5
+# im_size = 156
+# im_size_squared = im_size**2
+# label_size = 5
+# output_size=5
 
 
 class MRI:
+
   
-    def __init__(self, name='MRI', train=True):
+    def __init__(self, name='MRI', train=True,
+    				im_size=im_size, 
+    				im_size_squared = im_size_squared, 
+    				label_size=label_size, 
+    				output_size=output_size,
+    				device = None):
         self.name = name
         self.optimizer = tf.keras.optimizers.Adam(0.00001)
         if train:
@@ -23,9 +30,11 @@ class MRI:
         #self.flatten = tf.reshape(images, [batch_size, -1])
         #activations += [flatten, ]
         
-        self.device = None
+        self.device = device
         
         n_in = im_size_squared
+
+        # specify the input and output dimensions of first layer
         shape1 = [n_in, 512]
         self.w_fc1 = tf.Variable(
             tf.random.truncated_normal(shape=shape1, dtype=tf.float32, stddev=0.1), name='w1_{0}'.format(name))
@@ -74,7 +83,7 @@ class MRI:
             self.y = self.compute_output(X)
         return self.y
     
-    @tf.function
+    @tf.function # this decorator ensures that the function is incorporated into the graph
     def compute_output(self, X):
         """
         Custom method to obtain output tensor during forward pass

@@ -1,18 +1,62 @@
 import tensorflow as tf
 from utils_tf2 import _parse_function
 from model_tf2 import MRI, MRI_2dCNN, im_size, im_size_squared, output_size
-#import time
-logdir = 'logs_x_FFNN/'
-chkpt = 'logs_x_FFNN/model.ckpt'
-n_epochs = 3 
-batch_size = 10
+import argparse
+
+# logdir = 'logs_x_FFNN/'
+# chkpt = 'logs_x_FFNN/model.ckpt'
+# n_epochs = 10 # zdirection requires more?
+# batch_size = 10
+
+parser = argparse.ArgumentParser(description='This is to make command line runs easier')
+parser.add_argument('--logdir', action='store', type=str, dest='logdir', nargs="?", default='logs_x_FFNN/')
+parser.add_argument('--chkpt', action='store', type=str, dest='chkpt', nargs="?", default='logs_x_FFNN/model.ckpt')
+parser.add_argument('--n_epochs', action='store', type=int, dest='chkpt', nargs="?", default=10)
+parser.add_argument('--batch_size', action = 'store', type = int, dest = 'batch_size', nargs="?", default = 10)
+
+
+# im_size = 156
+# im_size_squared = im_size**2
+# label_size = 5
+# output_size=5
+parser.add_argument('im_size', action='store', type=int, dest='im_size', nargs='?', default=156)
+parser.add_argument('label_size', action='store', type=int, dest='label_size', nargs='?', default=5)
+parser.add_argument('output_size', action='store', type=int, dest='output_size', nargs='?', default=5)
+parser.add_argument('model_name', action='store', type=str, dest='model_name', nargs="?", default="MRI")
+parser.add_argument('device', action='store', type=str, dest='device', nargs="?", default=None)
+parser.add_argument('x_slice', action='store',type=int, dest='x_slice', default=None)
+parser.add_argument('y_slice', action='store',type=int, dest='y_slice', default=None)
+parser.add_argument('z_slice', action='store',type=int, dest='z_slice', default=None)
+args=parser.parse_args()
 
 class Trainer:
     strategy = tf.distribute.MirroredStrategy()
     with strategy.scope() as scope:
         
-        def __init__(self):
-            self.model = MRI(train=True)
+        def __init__(self, logdir = args.logdir,
+                            chkpt = args.chkpt,
+                            n_epochs = args.n_epochs,
+                            batch_size = args.batch_size,
+
+                            im_size=args.im_size,
+                            im_size_squared = args.im_size **2,
+                            label_size = args.label_size,
+                            output_size = args.output_size,
+                            model_name = args.model_name,
+                            device = args.device
+
+
+                            ):
+
+            #with tf.compat.v1.variable_scope('FFNN_x'):
+            
+
+            self.model = MRI(name = model_name, train=True, 
+                            im_size=im_size, 
+                            im_size_squared=im_size_squared, 
+                            label_size =label_size, 
+                            output_size=output_size,
+                            device=device)
 
         def cost(self, y_pred, y_true):
             return tf.reduce_mean(input_tensor=tf.nn.softmax_cross_entropy_with_logits(logits=y_pred, labels=y_true))
@@ -108,5 +152,12 @@ class Trainer:
             print('Validation Accuracy {0:4.2f}'.format(avg_accuracy))
             return avg_accuracy
 
-    if __name__ == '__main__':
-        Trainer().run()
+# Jack moved this indentation outward
+if __name__ == '__main__':
+    slice_d = {0:'x_slice', 1:'y_slice', 2:'z_slice'}
+    for e,i in enumerate([args.x_slice, args.y_slice, args.z_slice]):
+        if i:
+            print("only using {} of {}".format(i, slice_d))
+    Trainer().run(x_slice=args.x_slice, y_slice=args.y_slice, z_slice=args.z_slice)
+
+
