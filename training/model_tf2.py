@@ -11,6 +11,7 @@ class MRI:
   
     def __init__(self, name='MRI', train=True):
         self.name = name
+        self.optimizer = tf.keras.optimizers.Adam(0.00001)
         if train:
             self.dropout = 0.95
         else:
@@ -25,7 +26,7 @@ class MRI:
         self.device = None
         
         n_in = im_size_squared
-        shape1 = [n_in, 8]
+        shape1 = [n_in, 512]
         self.w_fc1 = tf.Variable(
             tf.random.truncated_normal(shape=shape1, dtype=tf.float32, stddev=0.1), name='w1_{0}'.format(name))
         self.b_fc1 =  tf.Variable(tf.constant(0.0, shape=shape1[-1:], dtype=tf.float32), name='b1_{0}'.format(name))
@@ -47,13 +48,13 @@ class MRI:
 #         with tf.variable_scope('flatten'):
 #             flatten = tf.contrib.layers.flatten(max_pool1)
 #             activations += [flatten, ]
-        shape2 = [8, 5]
+        shape2 = [512, 128]
         self.w_fc2 = tf.Variable(
             tf.random.truncated_normal(shape=shape2, dtype=tf.float32, stddev=0.1), name='w2_{0}'.format(name))
         self.b_fc2 =  tf.Variable(tf.constant(0.0, shape=shape2[-1:], dtype=tf.float32), name='b2_{0}'.format(name))
         #activations += [fc2, ]
 
-        shape3 = [5, output_size]
+        shape3 = [128, output_size]
         self.w_fc3 = tf.Variable(
             tf.random.truncated_normal(shape=shape3, dtype=tf.float32, stddev=0.1), name='w3_{0}'.format(name))
         self.b_fc3 =  tf.Variable(tf.constant(0.0, shape=shape3[-1:], dtype=tf.float32), name='b3_{0}'.format(name))
@@ -81,14 +82,14 @@ class MRI:
         # Cast X to float32
         X_tf = tf.cast(X, dtype=tf.float32)
         # Compute values in hidden layer
-        self.fc1 = self.fclayer(X, self.w_fc1, self.b_fc1, 'fc1') # was 512
-        self.fc2 = self.fclayer(self.fc1, self.w_fc2, self.b_fc2, 'fc2') # was 512
+        self.fc1 = self.fclayer(X, self.w_fc1, self.b_fc1, 'fc1')
+        self.fc2 = self.fclayer(self.fc1, self.w_fc2, self.b_fc2, 'fc2')
         dropout2 = tf.nn.dropout(self.fc2, rate=1 - (self.dropout), name='dropout2')
 
         logits = tf.nn.bias_add(tf.matmul(dropout2, self.w_fc3), self.b_fc3, name='logits')
         self.preds = tf.nn.softmax(logits, name='output')
         self.variables = [self.w_fc1, self.b_fc1, self.w_fc2, self.b_fc2, self.w_fc3, self.b_fc3]
-        return logits # ,activations
+        return logits
 
     
     def convlayer(self, input, shape, name):
@@ -100,8 +101,6 @@ class MRI:
     
     @tf.function
     def fclayer(self, x, w_fc, b_fc, name, prop=True):
-        #w_fc = tf.Variable(tf.random.truncated_normal(shape=shape, dtype=tf.float32, stddev=0.1), name='w_{0}'.format(name))
-        #b_fc = tf.Variable(tf.constant(0.0, shape=shape[-1:], dtype=tf.float32), name='b_{0}'.format(name))
         fc = tf.nn.relu(tf.nn.bias_add(tf.matmul(x, w_fc), b_fc), name=name)
         return fc
 
@@ -109,35 +108,12 @@ class MRI:
     def cost(self, y_pred, y_true):
         return tf.reduce_mean(input_tensor=tf.nn.softmax_cross_entropy_with_logits(logits=y_pred, labels=y_true))
 
-    def predict(self, images, labels, batch_size, reuse=False, train=True):
-
-        
-        #with tf.compat.v1.variable_scope(self.name):
-        
-        #    if reuse:
-        #        scope.reuse_variables()
-        
-
-            #activations = []
-               
-            #images = tf.reshape(images, [-1, im_size, im_size], name="input")
-            #activations += [images, ]
-        return
-            
-
-    @property
-    def params(self):
-        return tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.TRAINABLE_VARIABLES, scope=self.name)
-
     def backward(self, x_batch, y_batch):
-        optimizer = tf.keras.optimizers.Adam()
         with tf.GradientTape() as tape:
             predicted = self.forward(x_batch)
             current_loss = self.cost(predicted, y_batch)
         grads = tape.gradient(current_loss, self.variables)
-        first_var = min(self.variables, key=lambda x: x.name)
-        optimizer.apply_gradients(zip(grads, self.variables))
-        #optimizer._distributed_apply(strategy, zip(grads, self.variables))
+        self.optimizer.apply_gradients(zip(grads, self.variables))
 
 class MRI_2dCNN:
   
