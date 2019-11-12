@@ -34,7 +34,8 @@ class MRI:
         self.b_fc3 =  tf.Variable(tf.constant(0.0, shape=shape3[-1:], dtype=tf.float32), name='b3_{0}'.format(name))
         
         self.variables = [self.w_fc1, self.b_fc1, self.w_fc2, self.b_fc2, self.w_fc3, self.b_fc3]
-            
+    
+    
     @tf.function 
     def forward(self, X):
         """
@@ -49,6 +50,7 @@ class MRI:
             # Leave choice of device to default
             self.y = self.compute_output(X)
         return self.y
+    
     
     @tf.function
     def compute_output(self, X):
@@ -67,15 +69,18 @@ class MRI:
         #self.variables = [self.w_fc1, self.b_fc1, self.w_fc2, self.b_fc2, self.w_fc3, self.b_fc3]
         return logits
     
+    
     @tf.function
     def fclayer(self, x, w_fc, b_fc, name, prop=True):
         fc = tf.nn.relu(tf.nn.bias_add(tf.matmul(x, w_fc), b_fc), name=name)
         return fc
 
+    
     @tf.function   
     def cost(self, y_pred, y_true):
         return tf.reduce_mean(input_tensor=tf.nn.softmax_cross_entropy_with_logits(logits=y_pred, labels=y_true))
 
+    
     def backward(self, x_batch, y_batch):
         x_batch = tf.reshape(x_batch, [x_batch.shape[0], -1])
         with tf.GradientTape() as tape:
@@ -91,19 +96,18 @@ class MRI:
 class MRI_2dCNN:
             
     def __init__(self, name='MRI_2dCNN', train=True, im_size=156, label_size=3):
+        
         self.name = name
         self.im_size = im_size
         self.im_size_squared = im_size**2
         self.label_size = self.output_size = label_size
         self.optimizer = tf.keras.optimizers.Adam(0.00001)
-        
+        self.device = None        
         if train:
             self.dropout = 0.95
         else:
             self.dropout = 1.0
             
-        self.device = None
-        
         shape1 = [3, 3, 1, 32]
         self.w1_conv = tf.Variable(tf.random.truncated_normal(
             shape=shape1, dtype=tf.float32, stddev=0.1), name='w1_{0}'.format(name))
@@ -127,12 +131,14 @@ class MRI_2dCNN:
 
         self.variables = [self.w1_conv, self.b1_conv, self.w2_conv, self.b2_conv, self.w_fc1, self.b_fc1, 
                           self.w_fc2, self.b_fc2]
+    
     @tf.function    
     def forward(self, X):
         """
         Method to do forward pass
         X: Tensor, inputs
         """
+        
         if len(X.shape) == 3:
             X = tf.expand_dims(X, 3)
         if self.device is not None:
@@ -142,23 +148,27 @@ class MRI_2dCNN:
             # Leave choice of device to default
             self.y = self.compute_output(X)
         return self.y
-        
+   
+
     @tf.function
     def convlayer(self, x, w_conv, b_conv, name):
         conv = tf.nn.relu(
             tf.nn.bias_add(tf.nn.conv2d(input=x, filters=w_conv, strides=[1, 1, 1, 1], padding='SAME'), b_conv), name=name)
         return conv
     
-    @tf.function
+    
+    tf.function
     def fclayer(self, x, w_fc, b_fc, name, prop=True):
         fc = tf.nn.relu(tf.nn.bias_add(tf.matmul(x, w_fc), b_fc), name=name)
         return fc
+    
     
     @tf.function
     def compute_output(self, X):
         """
         Custom method to obtain output tensor during forward pass
         """
+        
         # Cast X to float32
         X_tf = tf.cast(X, dtype=tf.float32)
         # Compute values in hidden layer
@@ -175,9 +185,11 @@ class MRI_2dCNN:
         #self.variables = [self.w_fc1, self.b_fc1, self.w_fc2, self.b_fc2, self.w_fc3, self.b_fc3]
         return logits
     
+    
     @tf.function   
     def cost(self, y_pred, y_true):
         return tf.reduce_mean(input_tensor=tf.nn.softmax_cross_entropy_with_logits(logits=y_pred, labels=y_true))
+    
     
     def backward(self, x_batch, y_batch):
         x_batch = tf.expand_dims(x_batch, 3)

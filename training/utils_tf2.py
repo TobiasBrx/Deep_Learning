@@ -4,6 +4,7 @@ import tensorflow as tf
 import numpy as np
         
 class ModelSelectionError(Exception):
+    
     pass
     
 def visualize(x,colormap):
@@ -60,3 +61,44 @@ def heatmap(x):
 	b = hbp*(x>=0)+hbn*(x<0)
 
 	return numpy.concatenate([r,g,b],axis=-1)
+
+def create_booleanmasks(dim_tuple=dim_tuple, h=h, w=w, s=s, pad=False):
+    """
+	inputs
+		dim_tuple specifies mask dimensions
+		h & w specify the dimensions of the True subframe
+		s specifies the stride
+
+	output:
+		list of boolean masks
+    """  
+    
+    if pad:
+        raise ValueError("function not built to perform padding")
+    arrh = dim_tuple[0]
+    arrw = dim_tuple[1]
+    oh_cur=0
+    ow_cur=0
+    h_cur = oh_cur
+    w_cur = ow_cur
+    output=[]
+    bean = 0
+    _fl =True
+    while _fl:
+        if (w_cur+w >arrw ) or (h_cur+h >arrh):
+            _fl=False
+        else:
+            tmp = np.zeros(dim_tuple)
+            tmp[w_cur:w_cur+w,h_cur:h_cur+h]=1
+            output.append(tmp)
+            w_cur+=s
+            if w_cur+w >arrw:
+                w_cur=ow_cur
+                h_cur+=s
+                if w_cur+w >arrw:
+                    _fl=False
+                elif h_cur+h >arrh:
+                    _fl=False
+            bean+=1
+    masks = [i.astype(bool) for i in output]
+    return masks
