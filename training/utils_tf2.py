@@ -2,17 +2,10 @@ import gzip
 import pickle
 import tensorflow as tf
 import numpy as np
-
-def _parse_function(example_proto):
-    features = {"image": tf.io.FixedLenFeature([256, 256, 256], tf.float32),
-              "label": tf.io.FixedLenFeature((), tf.int64),
-               'name': tf.io.FixedLenFeature((), tf.string, default_value='')}
-    parsed_features = tf.io.parse_single_example(serialized=example_proto, features=features)
-    parsed_features["image"]= tf.reshape(parsed_features["image"],[-1]) 
-    parsed_features["label"]=tf.one_hot(parsed_features["label"],5)
-    return parsed_features["image"], parsed_features["label"], parsed_features["name"]
-
-
+        
+class ModelSelectionError(Exception):
+    pass
+    
 def visualize(x,colormap):
 
         N = len(x); assert(N<=16)
