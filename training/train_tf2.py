@@ -7,9 +7,10 @@ import time
 logdir = 'logs_x_FFNN/'
 chkpt = 'logs_x_FFNN/model.ckpt'
 n_epochs = 10 
-batch_size = 6
+batch_size = 5
 label_size = 3
 im_size=156
+total_training_files = 12975
 
 class Trainer:
     
@@ -45,12 +46,12 @@ class Trainer:
                 self.file_writer = tf.summary.create_file_writer(logdir)
                 self.dataset = tf.data.TFRecordDataset(train_filenames).map(
                     _parse_function, num_parallel_calls=tf.data.experimental.AUTOTUNE).shuffle(
-                    buffer_size=9).batch(batch_size)#.repeat()
+                    buffer_size=5).batch(batch_size)#.repeat()
                 #self.dataset = self.dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
                 #self.dist_dataset = strategy.experimental_distribute_dataset(self.dataset)
                 self.val_dataset = tf.data.TFRecordDataset(val_filenames).map(
                     _parse_function, num_parallel_calls=tf.data.experimental.AUTOTUNE).shuffle(
-                    buffer_size=9).batch(batch_size)#.repeat()
+                    buffer_size=5).batch(batch_size)#.repeat()
                 #self.val_dataset = self.val_dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
                 #self.dist_val_dataset = strategy.experimental_distribute_dataset(self.val_dataset)
 
@@ -66,7 +67,7 @@ class Trainer:
         
         def train(self, epoch, x_slice, y_slice, z_slice, t_start):
             #TODO: not satisfied with batch sampling. initial batches are very similar. RAMIFICATIONS ?
-            n_batches = 1290
+            n_batches = int(total_training_files/batch_size)
             batch = 0
             avg_cost = 0.0
             avg_accuracy = 0.0
