@@ -62,7 +62,7 @@ def heatmap(x):
 
 	return numpy.concatenate([r,g,b],axis=-1)
 
-def create_booleanmasks(dim_tuple=dim_tuple, h=h, w=w, s=s, pad=False):
+def create_booleanmasks(dim_tuple=(52, 52), h=5, w=5, s=5, pad=False):
     """
 	inputs
 		dim_tuple specifies mask dimensions
