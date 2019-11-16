@@ -6,12 +6,12 @@ import time
 #import pickle
 logdir = 'logs_x_FFNN/'
 chkpt = 'logs_x_FFNN/model.ckpt'
-n_epochs = 10 
+n_epochs = 10
 batch_size = 5
 label_size = 3
 im_size=156
 total_training_files = 12975
-
+total_validation_files = 960
 class Trainer:
     
     #strategy = tf.distribute.experimental.MultiWorkerMirroredStrategy()
@@ -58,7 +58,7 @@ class Trainer:
                 for epoch in range(n_epochs):
                     t_start = time.time()
                     self.train(epoch, x_slice, y_slice, z_slice, t_start)
-                    final_accuracy = self.validate(epoch, x_slice, y_slice, z_slice)
+                    final_accuracy = self.validate(x_slice, y_slice, z_slice).numpy()
                     print('\nEpoch {0:>3}|  Validation Accuracy: {1:4.2f}'.format(str(epoch + 1), final_accuracy))
                     self.checkpoint.save(chkpt)
                 
@@ -129,8 +129,8 @@ class Trainer:
             return batch_accuracy, current_loss
 
         @tf.function    
-        def validate(self, epoch, x_slice, y_slice, z_slice):
-            n_batches = 100
+        def validate(self, x_slice, y_slice, z_slice):
+            n_batches = int(total_validation_files/batch_size)
             batch = 0
             avg_accuracy = 0.0
             for x_batch, y_batch, _name in self.val_dataset:
@@ -146,13 +146,12 @@ class Trainer:
                     x_batch = x_batch[:, : , : , z_slice]
                 y_pred = self.model.forward(x_batch)
                 y_batch = tf.reshape(y_batch, [tf.shape(y_batch)[0], -1])
-                #y_batch = tf.cast(y_batch, tf.float32)
                 accuracy = self.accuracy(y_pred, y_batch)
                 avg_accuracy += accuracy
                 if batch == n_batches:
                     break
             avg_accuracy /= n_batches
-            return float(avg_accuracy)
+            return avg_accuracy
         
         
 @tf.function         
